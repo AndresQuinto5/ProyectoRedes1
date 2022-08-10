@@ -315,3 +315,119 @@ class Client(ClientXMPP):
         self.get_roster()
         time.sleep(2)
         self.create_user_dict()
+
+    # Search for a user by his username
+    def get_user_data(self, username):
+        # Create the user search IQ
+        iq = self.Iq()
+        iq.set_from(self.boundjid.full)
+        iq.set_to('search.'+self.boundjid.domain)
+        iq.set_type('get')
+        iq.set_query('jabber:iq:search')
+
+        # Send it and expect a form as an answer
+        iq.send(now=True)
+
+        # Create a new form response
+        form = Form()
+        form.set_type('submit')
+
+        # FORM TYPE
+        form.add_field(
+            var='FORM_TYPE',
+            ftype='hidden',
+            type='hidden',
+            value='jabber:iq:search'
+        )
+
+        # SEARCH LABEL
+        form.add_field(
+            var='search',
+            ftype='text-single',
+            type='text-single',
+            label='Search',
+            required=True,
+            value=username
+        )
+
+        # USERNAME
+        form.add_field(
+            var='Username',
+            ftype='boolean',
+            type='boolean',
+            label='Username',
+            value=1
+        )
+
+        # Create the next IQ, which will contain the form
+        search = self.Iq()
+        search.set_type('set')
+        search.set_to('search.'+self.boundjid.domain)
+        search.set_from(self.boundjid.full)
+
+        # Create the search query
+        query = ET.Element('{jabber:iq:search}query')
+        # Append the form to the query
+        query.append(form.xml)
+        # Append the query to the IQ
+        search.append(query)
+        # Send de IQ and get the results
+        results = search.send(now=True, block=True)
+
+        res_values = results.findall('.//{jabber:x:data}value')
+
+        amount = 0
+        for value in res_values:
+            if value.text:
+                if '@' in value.text:
+                    amount += 1
+
+        if not res_values:
+            return False, amount
+
+        return [value.text if value.text else 'N/A' for value in res_values], amount
+
+    # Act when a new presence subscribes to you
+    def new_presence_subscribed(self, presence):
+        print(f'{BLUE}{SUSCRIPTION} {presence.get_from()} subscribed to you!{ENDC}')
+
+    # Delete account from server
+
+    def delete_account(self):
+        resp = self.Iq()
+        resp['type'] = 'set'
+        resp['from'] = self.boundjid.full
+        resp['register']['remove'] = True
+
+        try:
+            resp.send(now=True)
+            print(f'{OKGREEN}Account deleted for {self.boundjid}{ENDC}')
+        except IqError as e:
+            logging.error('Could not unregister account: %s' %
+                          e.iq['error']['text'])
+            self.disconnect()
+        except IqTimeout:
+            logging.error('No response from server.')
+            self.disconnect()
+
+    # Act when a contact gets offline
+    def presence_offline(self, presence):
+        new_presence = str(presence['from']).split('/')[0]
+        if self.boundjid.bare != new_presence and new_presence in self.contact_dict:
+            self.contact_dict[new_presence].update_data(
+                '', presence['type'], '')
+
+    # Act when a contact gets online
+    def presence_online(self, presence):
+        new_presence = str(presence['from']).split('/')[0]
+        resource = str(presence['from']).split('/')[1]
+
+        try:
+            if self.boundjid.bare != new_presence and new_presence in self.contact_dict:
+                self.contact_dict[new_presence].update_data(
+                    '', presence['type'], resource)
+
+                print(
+                    f'{BLUE}{GOT_ONLINE} {new_presence} got online!{ENDC}')
+        except:
+            pass
