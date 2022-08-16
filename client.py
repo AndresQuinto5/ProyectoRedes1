@@ -431,3 +431,61 @@ class Client(ClientXMPP):
                     f'{BLUE}{GOT_ONLINE} {new_presence} got online!{ENDC}')
         except:
             pass
+
+    # Send a presence message with its show and status
+    def presence_message(self, show, status):
+        self.send_presence(pshow=show, pstatus=status)
+
+    # Send a message to someone directly
+    def send_session_message(self, recipient, message):
+        mfrom = self.boundjid.bare
+        self.send_message(
+            mto=recipient,
+            mbody=message,
+            mtype='chat',
+            mfrom=self.boundjid.bare)
+        if recipient in self.contact_dict and message:
+            self.contact_dict[recipient].add_message_to_list(
+                (mfrom.split('@')[0], message))
+
+        if message:
+            print(f'{OKGREEN} Message sent!{ENDC}')
+
+    # Join an existing room
+    def join_room(self, room, nick):
+        status = 'Hello world!'
+        self.plugin['xep_0045'].joinMUC(
+            room,
+            nick,
+            pstatus=status,
+            pfrom=self.boundjid.full,
+            wait=True)
+
+        if not room in self.room_dict:
+            self.room_dict[room] = Group(room, nick, status)
+
+    # Create a new room with its name and nick
+    def create_new_room(self, room, nick):
+        status = 'Hello world!'
+        self.plugin['xep_0045'].joinMUC(
+            room,
+            nick,
+            pstatus=status,
+            pfrom=self.boundjid.full,
+            wait=True)
+
+        self.plugin['xep_0045'].setAffiliation(
+            room, self.boundjid.full, affiliation='owner')
+
+        self.plugin['xep_0045'].configureRoom(room, ifrom=self.boundjid.full)
+
+        self.room_dict[room] = Group(room, nick, status)
+
+    # Leave a room
+    def leave_room(self, room, nick):
+        self.plugin['xep_0045'].leaveMUC(room, nick)
+
+        if room in self.room_dict:
+            del self.room_dict[room]
+        else:
+            print(f'{FAIL} You are not part of that room!{ENDC}')
