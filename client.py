@@ -72,3 +72,60 @@ class Client(ClientXMPP):
 
         self.received = set()
         self.presences_received = threading.Event()
+
+    def session_start(self):
+        try:
+            self.get_roster(block=True)
+        except IqError as err:
+            print('Error: %s' % err.iq['error']['condition'])
+        except IqTimeout:
+            print('Error: Request timed out')
+
+        self.send_presence()
+
+    # Create a new user dict
+    def create_user_dict(self, wait=False):
+
+        try:
+            self.get_roster(block=True)
+        except IqError as err:
+            print('Error: %s' % err.iq['error']['condition'])
+        except IqTimeout:
+            print('Error: Request timed out')
+
+        groups = self.client_roster.groups()
+        for jid in groups['']:
+            # Check we are not evaluating ourselves or a conference room
+            if jid == self.boundjid.bare or 'conference' in jid:
+                continue
+
+            # Get some data
+            sub = self.client_roster[jid]['subscription']
+            name = self.client_roster[jid]['name']
+            username = str(jid.split('@')[0])
+            connections = self.client_roster.presence(jid)
+
+            # Check if connections is empty
+            if connections.items():
+                # Go through each connection
+                for res, pres in connections.items():
+
+                    show = 'available'
+                    status = ''
+                    if pres['show']:
+                        show = pres['show']
+                    if pres['status']:
+                        status = pres['status']
+
+                    # Check if the user is in the dict, else add it
+                    if not jid in self.contact_dict:
+                        self.contact_dict[jid] = User(
+                            jid, name, show, status, sub, username, res)
+                    else:
+                        self.contact_dict[jid].update_data(
+                            status, show, res, sub)
+
+            # User is not connected, still add him to the dict
+            else:
+                self.contact_dict[jid] = User(
+                    jid, name, 'unavailable', '', sub, username, '')
