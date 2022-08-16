@@ -274,3 +274,44 @@ class Client(ClientXMPP):
 
         # Accept the file requested
         self.plugin['xep_0095'].accept(jid=iq.get_from().full, sid=file_id)
+
+    # Let the user know the file is about to start downloading
+    def on_stream_start(self, stream):
+        print(f'{RED}{STREAM_TRANSFER}{ENDC}')
+
+    # Append the recieved data to the file
+    def stream_data(self, stream):
+        b64_data = stream['data']
+        dir_path = os.path.join(
+            DIRNAME, f'received_files/{self.file_received}')
+
+        with open(dir_path, 'ab+') as new_file:
+            new_file.write(base64.decodebytes(b64_data))
+
+    # Print messages when file transfer finished
+    def stream_closed(self, stream):
+        print(f'{OKGREEN}File transfer completed!{ENDC}')
+        print('Stream closed: %s from %s' % (stream.sid, stream.peer_jid))
+
+    # Act when logged out/disconnected
+    def got_disconnected(self, event):
+        print(f'{OKBLUE}Logged out from the current session{ENDC}')
+
+    # Act when authentication fails
+    def on_failed_auth(self, event):
+        print(f'{FAIL}Credentials are not correct.{ENDC}')
+        self.disconnect()
+
+    # Add a user from his jid
+    def add_user(self, jid):
+        self.send_presence_subscription(pto=jid,
+                                        ptype='subscribe',
+                                        pfrom=self.boundjid.bare)
+
+        if not jid in self.contact_dict:
+            self.contact_dict[jid] = User(
+                jid, '', '', '', 'to', str(jid.split('@')[0]))
+        print(f'{OKBLUE}{SUSCRIPTION} Subscribed to {jid}!{ENDC}')
+        self.get_roster()
+        time.sleep(2)
+        self.create_user_dict()
