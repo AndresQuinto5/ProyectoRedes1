@@ -22,4 +22,3 @@ from sleekxmpp.plugins.xep_0004.stanza.form import Form
 from sleekxmpp.plugins.xep_0047.stream import IBBytestream
 from consts import OKGREEN, OKBLUE, WARNING, FAIL, ENDC, BLUE, RED, NEW_MESSAGE, FILE_OFFER, SUSCRIPTION, GOT_ONLINE, error_msg, GROUPCHAT, STREAM_TRANSFER
 
-
