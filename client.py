@@ -129,3 +129,148 @@ class Client(ClientXMPP):
             else:
                 self.contact_dict[jid] = User(
                     jid, name, 'unavailable', '', sub, username, '')
+
+    # Returns a dict jid - User. If it's empty, create it.
+    def get_user_dict(self):
+        if not self.contact_dict:
+            self.create_user_dict()
+        return self.contact_dict
+
+    # Create user dict on new presence
+    def wait_for_presences(self, pres):
+        self.received.add(pres['from'].bare)
+        if len(self.received) >= len(self.client_roster.keys()):
+            self.presences_received.set()
+        else:
+            self.presences_received.clear()
+
+        self.create_user_dict()
+
+    # Act upon a received message
+    def received_message(self, msg):
+
+        sender = str(msg['from'])
+        jid = sender.split('/')[0]
+        username = jid.split('@')[0]
+        if msg['type'] in ('chat', 'normal'):
+            print(f'{BLUE}{NEW_MESSAGE} New message from {jid}{ENDC}')
+
+            if not jid in self.contact_dict:
+                self.contact_dict[jid] = User(
+                    jid, '', '', '', '', username)
+
+            self.contact_dict[jid].add_message_to_list((username, msg['body']))
+
+        elif msg['type'] in ('groupchat', 'normal'):
+            nick = sender.split('/')[1]
+
+            # don't let you get a notification from yourself
+            if jid in self.room_dict:
+                self.room_dict[jid].add_message_to_list((nick, msg['body']))
+                if nick != self.room_dict[jid].nick:
+                    print(
+                        f'{BLUE}{GROUPCHAT} New message from {nick} in {jid}{ENDC}')
+
+    def request_si(self, user_jid, file_path):
+
+        file_path = file_path.replace('\\', '/')
+        # Get some  data from the file
+        file_name = file_path.split('/')[-1]
+        file_size = os.path.getsize(file_path)
+        unix_date = os.path.getmtime(file_path)
+        file_date = datetime.datetime.utcfromtimestamp(
+            unix_date).strftime('%Y-%m-%dT%H:%M:%SZ')
+        file_mime_type = 'not defined'
+
+        try:
+            file_mime_type = str(
+                mimetypes.MimeTypes().guess_type(file_path)[0])
+        except:
+            pass
+
+        data = None
+        # Read the contents of the file and encode it to b64
+        with open(file_path, 'rb') as file:
+            data = base64.b64encode(file.read()).decode('utf-8')
+
+        # Set the data of the request
+        dest = self.contact_dict[user_jid].get_full_jid()
+
+        try:
+
+            req = self.plugin['xep_0096'].request_file_transfer(
+                jid=dest,
+                name=file_name,
+                size=file_size,
+                mime_type=file_mime_type,
+                sid='ibb_file_transfer',
+                desc='Envío un archivo con descripción',
+                date=file_date
+            )
+
+            # Wait for the other user to accept the file transfer
+            print(f'{BLUE}{FILE_OFFER} Offering a file transfer to the user.{ENDC}')
+            time.sleep(2)
+
+            # Open the ibb stream transfer
+            stream = self.plugin['xep_0047'].open_stream(
+                jid=dest, sid='ibb_file_transfer', ifrom=self.boundjid.full)
+
+            # Wait for the other client to get notified about this
+            time.sleep(2)
+
+            # Send him all of the encoded data
+            stream.sendall(data)
+
+            # Wait for him to process al of it
+            time.sleep(2)
+
+            # Finally, close the ibb stream
+            stream.close()
+
+        except:
+            print(error_msg)
+
+    def on_si_request(self, iq):
+
+        # Get sender from the iq
+        sender = iq.get_from().user
+
+        # Now, si (where we can get file type)
+        payload = iq.get_payload()[0]
+        file_type = payload.get('mime-type')
+        file_id = payload.get('id')
+
+        # Get file object from payload
+        file = payload.getchildren()[0]
+        # From this, get name, size and date
+        file_name = file.get('name')
+        file_size = file.get('size')
+        file_date = file.get('date')
+
+        # Check if file has a description
+        try:
+            desc = file.getchildren()[0]
+            desc = desc.text
+        except:
+            desc = None
+
+        print(f'{BLUE}|================> FILE REQUEST RECEIVED <===============|{ENDC}')
+        print(f'''
+        {BLUE}{sender} is going to send you a file: {ENDC}
+            - type: {file_type}
+            - name: {file_name}
+            - size: {file_size}
+            - date: {file_date}
+        ''')
+        if desc:
+            print(f'  Description: {desc}')
+
+        # Create empty file
+        dir_path = os.path.join(DIRNAME, 'received_files')
+        self.file_received = file_name
+        with open(os.path.join(dir_path, file_name), 'w') as fp:
+            pass
+
+        # Accept the file requested
+        self.plugin['xep_0095'].accept(jid=iq.get_from().full, sid=file_id)
