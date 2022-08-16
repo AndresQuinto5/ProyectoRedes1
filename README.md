@@ -38,7 +38,7 @@ This client provides basic features like sending messages, receiving messages an
 
 ## How to
 
-### File transfer (NOT WORKING)
+### File transfer (NOT WORKING, ONLY ON PY 37)
 
 1. Select option 7 once you logged in.
 2. Select the contact you want to send the file to.
