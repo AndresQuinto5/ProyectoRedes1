@@ -128,21 +128,21 @@ def handle_session(event):
 
         # OPTION 1: Show connected users
         if option == '1':
-            # print(f'\n{BOLD}Every user on this server:{ENDC}\n')
-            # users = xmpp.get_all_online()
-            # print_all_users(users)
+            print(f'\n{BOLD}Every user on this server:{ENDC}\n')
+            users = xmpp.get_all_online()
+            print_all_users(users)
 
-            # print(
-            #     f'\n{BLUE}|================================================|{ENDC}')
-            # print(f'\n{BOLD}My roster:{ENDC}\n')
-            # roster = xmpp.get_user_dict()
-            # print_contacts(roster)
-            
+            print(
+                f'\n{BLUE}|================================================|{ENDC}')
+            print(f'\n{BOLD}My roster:{ENDC}\n')
             roster = xmpp.get_user_dict()
-            # Get all users as list
-            users = list(roster.keys())
-            # Print table of users with their index
-            print_contact_index(roster)
+            print_contacts(roster)
+            
+            # roster = xmpp.get_user_dict()
+            # # Get all users as list
+            # users = list(roster.keys())
+            # # Print table of users with their index
+            # print_contact_index(roster)
 
         # OPTION 2: Add a user to my contact list
         elif option == '2':
