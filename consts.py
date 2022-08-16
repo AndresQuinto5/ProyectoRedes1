@@ -41,3 +41,12 @@ main_menu = f"""
 9. Delete my account
 {HEADER}|===============================================|{ENDC}
 """
+
+group_options = f"""
+\tSelect one of the options below:
+\t1. Create a group chat
+\t2. Join a group chat
+\t3. Send message to group
+\t4. Exit a group chat
+\t5. Cancel
+"""
