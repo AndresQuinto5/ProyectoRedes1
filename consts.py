@@ -50,3 +50,56 @@ group_options = f"""
 \t4. Exit a group chat
 \t5. Cancel
 """
+
+show_options = f"""
+Select one of the options below:
+1. chat
+2. away
+3. xa (eXtended away)
+4. dnd (do not disturb)
+"""
+
+# Errors messages
+error_msg = f"""
+{FAIL}Something went wrong...{ENDC}
+"""
+invalid_option = f'{FAIL}please enter a valid option!{ENDC}'
+
+chat_session = f"""
+********************************************************
+|        YOUR ARE NOW IN A PRIVATE CHAT SESSION        |
+********************************************************
+
+Type {BOLD}exit{ENDC} to leave this chat session.
+"""
+
+# Userful variables
+show_array = ['chat', 'away', 'xa', 'dnd']
+
+# NOTIFICATIONS:
+NEW_MESSAGE = '''
+|==============> NEW MESSAGE <==============|
+'''
+
+FILE_OFFER = '''
+<==============| OFFERED FILE |==============>
+'''
+
+SUSCRIPTION = '''
+|==============| SUSCRIPTION |==============|
+'''
+
+GOT_ONLINE = '''
+|==============> NOW ONLINE <==============|
+'''
+
+GROUPCHAT = '''
+|==============>  GROUP CHAT <==============|
+'''
+
+STREAM_TRANSFER = '''
+|==============> STREAM STARTED <==============|
+            File transfer initiated!
+
+Please wait...
+'''
