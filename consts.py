@@ -18,3 +18,12 @@ UNDERLINE = '\033[1;30m'
 BLUE = '\033[94m'
 RED = '\033[91m'
 YELLOW = '\033[93m'
+
+# Menu messages
+login_menu = f"""
+{HEADER}|=================| LOGIN MENU |=================|{ENDC}
+1. Register a new account
+2. Log into an account
+3. Exit
+{HEADER}|================================================|{ENDC}
+"""
